@@ -1,11 +1,11 @@
 ;(function ($, window, document, undefined) {
 	'use strict';
 
-	var DOCUMENT = $(document),
-		WINDOW   = $(window),
+	var D = $(document),
+		W   = $(window),
 		isTouch  = document.createTouch !== undefined,
 		GB = $.genaBox = function () {
-			GB.open.apply( this, arguments );
+			GB.open.apply(this, arguments);
 		};
 
 	$.extend(GB, {
@@ -68,8 +68,6 @@
 		 * @param {Object} Объект с опциями
 		 */
 		open: function (el, options) {
-			var type;
-
 			GB.element = el;
 			GB.options = $.extend(true, {}, GB.defaults, options || {}, el.html5data('gb'));
 			GB.showLoading();
@@ -78,29 +76,21 @@
 
 			GB.container.off('.gb-close').on('click.gb-close', '.js-gena_close', function (e) {
 				e.preventDefault();
-
 				GB.close();
 			});
 
 			GB.escape();
 
-			type = GB.options.type;
+			if(GB.element.is('a') && GB.element.attr('href')[0] === '#') {
+				GB.options.type = 'inline';
+			}
 
-			if (!GB.element.data('gb-theme') && (type === 'inline' || type === 'ajax')) {
+			if (!GB.element.data('gb-theme')
+					&& (GB.options.type === 'inline' || GB.options.type === 'ajax')) {
 				GB.options.theme = 'defaults';
 			}
 
-			switch (type) {
-				case 'inline':
-					GB.inline();
-					break;
-				case 'ajax':
-					GB.ajax();
-					break;
-				case 'image':
-					GB.image();
-					break;
-			}
+			GB[GB.options.type]();
 		},
 
 		/*
@@ -167,7 +157,7 @@
 
 			GB.hideLoading();
 
-			loader = $('<div/>', {
+			loader = loader = $('<div/>', {
 				class: 'gena-preload'
 			}).appendTo('body');
 
@@ -196,7 +186,7 @@
 		 */
 		escape: function () {
 			if (GB.isShow && !!GB.options.escBtn) {
-				WINDOW.on('keyup', function (e) {
+				W.on('keyup', function (e) {
 					if (e.which == 27) {
 						GB.close();
 					}
@@ -211,9 +201,7 @@
 		 * @return {Object} Тема
 		 */
 		getTheme: function (theme) {
-			var theme = theme || GB.options.theme;
-
-			return GB.theme[theme];
+			return GB.theme[theme || GB.options.theme];
 		},
 
 		/*
@@ -222,12 +210,11 @@
 		 * @method inline
 		 */
 		inline: function () {
-			var content,
-				url = GB.element.attr('href') || '#' + GB.element.attr('id');
+			var content, url = GB.element.attr('href') || '#' + GB.element.attr('id');
 
 			GB.container.empty().append(GB.getTheme());
 
-			GB.dataHtml = DOCUMENT.find('' + url + '');
+			GB.dataHtml = D.find('' + url + '');
 
 			// TODO Сделать вывод ошибки
 			if (GB.dataHtml.length) {
@@ -307,7 +294,7 @@
 		image: function () {
 			var isGallery = GB.element.data('gb-gall') || false;
 
-			var items = (isGallery) ? DOCUMENT.find('a[data-gb-gall=' + isGallery + ']') : GB.element,
+			var items = (isGallery) ? D.find('a[data-gb-gall=' + isGallery + ']') : GB.element,
 				index = items.index(GB.element);
 
 			var prev, next, gallery;
@@ -450,8 +437,6 @@
 
 				return size;
 			}
-
-
 		},
 
 		/*
@@ -475,10 +460,10 @@
 		 */
 		getViewport: function () {
 			return {
-				scrollTop: WINDOW.scrollTop(),
-				scrollLeft: WINDOW.scrollLeft(),
-				width: isTouch && window.innerWidth  ? window.innerWidth  : WINDOW.width(),
-				height: isTouch && window.innerHeight ? window.innerHeight : WINDOW.height()
+				scrollTop: W.scrollTop(),
+				scrollLeft: W.scrollLeft(),
+				width: isTouch && window.innerWidth  ? window.innerWidth  : W.width(),
+				height: isTouch && window.innerHeight ? window.innerHeight : W.height()
 			};
 		},
 
@@ -525,8 +510,8 @@
 		return this;
 	};
 
-	DOCUMENT.ready(function() {
-		DOCUMENT.on('click', '[data-gb-show]', function (e) {
+	D.ready(function() {
+		D.on('click', '[data-gb-show]', function (e) {
 			e.preventDefault();
 			$.genaBox.open($(this));
 		});
