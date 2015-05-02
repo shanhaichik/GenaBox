@@ -1,4 +1,5 @@
-;(function ($, window, document, undefined) {
+/*jslint devel: true, forin: true*/
+!function ($, window, document, undefined) {
 	'use strict';
 
 	var D = $(document),
@@ -24,13 +25,13 @@
 				dataType: 'html',
 				type: 'POST'
 			},
-			beforeOpen:  function(){},
-			afterOpen:   function(){},
-			onClick:     function(){},
-			onNext:      function(){},
-			onPrev:      function(){},
-			ajaxSuccess: function(){},
-			ajaxFail:    function(){}
+			beforeOpen:  function () {},
+			afterOpen:   function () {},
+			onClick:     function () {},
+			onNext:      function () {},
+			onPrev:      function () {},
+			ajaxSuccess: function () {},
+			ajaxFail:    function () {}
 		},
 		theme: {
 			defaults: [
@@ -81,7 +82,7 @@
 
 			GB.escape();
 
-			if(GB.element.is('a') && GB.element.attr('href')[0] === '#') {
+			if (GB.element.is('a') && GB.element.attr('href')[0] === '#') {
 				GB.options.type = 'inline';
 			}
 
@@ -90,7 +91,11 @@
 				GB.options.theme = 'defaults';
 			}
 
-			GB[GB.options.type]();
+			try {
+				GB[GB.options.type]();
+			} catch (e) {
+				console.error('Genabox: ' + e);
+			}
 		},
 
 		/*
@@ -99,7 +104,7 @@
 		 * @method close
 		 */
 		close: function () {
-			if (GB.options.type === 'inline') {
+			if (GB.options.type === 'inline' && GB.dataHtml !== null) {
 				GB.dataHtml.trigger('gena-insert');
 			}
 
@@ -123,7 +128,7 @@
 		 * @method createOverlay
 		 */
 		createOverlay: function () {
-			if(!GB.overlay) {
+			if (!GB.overlay) {
 				GB.overlay = $('<div/>', {
 					class: 'gena-overlay'
 				}).appendTo('body').on('click', function () {
@@ -140,7 +145,7 @@
 		 * @method createContainer
 		 */
 		createContainer: function () {
-			if(!GB.container) {
+			if (!GB.container) {
 				GB.container = $('<div/>', {
 					class: 'gena-container'
 				}).appendTo('body');
@@ -167,7 +172,7 @@
 				position: 'absolute',
 				top:      ((viewport.height - 20) * 0.5) + viewport.scrollTop,
 				left:     ((viewport.width - 20) * 0.5) + viewport.scrollLeft
-			})
+			});
 		},
 
 		/*
@@ -187,7 +192,7 @@
 		escape: function () {
 			if (GB.isShow && !!GB.options.escBtn) {
 				W.on('keyup', function (e) {
-					if (e.which == 27) {
+					if (e.which === 27) {
 						GB.close();
 					}
 				});
@@ -214,10 +219,9 @@
 
 			GB.container.empty().append(GB.getTheme());
 
-			GB.dataHtml = D.find('' + url + '');
+			try {
+				GB.dataHtml = D.querySelector(url);
 
-			// TODO Сделать вывод ошибки
-			if (GB.dataHtml.length) {
 				content = GB.container.find('.gena-content');
 
 				GB.tmp = $('<div/>', {
@@ -240,6 +244,8 @@
 				GB.hideLoading();
 
 				GB.setPosition();
+			} catch (e) {
+				throw new Error('Not valid attr href/id  or DOM element not found: ' + url);
 			}
 		},
 
@@ -250,7 +256,7 @@
 		 */
 		ajax: function () {
 			var content,
-				url = GB.element.attr('href') || '#' + GB.element.attr('id');
+				url = GB.element.attr('href') || GB.element.attr('data-gb-url');
 
 			$.ajax($.extend(true, {}, GB.options.ajax, {
 				url: url
@@ -266,14 +272,12 @@
 						.append(data);
 
 					GB.hideLoading();
-
 					GB.setPosition();
 				})
 				.fail(function (err) {
-					console.log(err);
+					throw new Error('In ajax request on url ' + url + ' we have an error: ' + err);
 				})
 				.always(function () {
-
 					if (GB.isShow && GB.tmp) {
 						GB.dataHtml.insertBefore(GB.tmp).removeClass('gena-show-all');
 						GB.tmp.remove();
@@ -309,7 +313,11 @@
 			loadImage(GB.element, index);
 
 			if (items.length > 1 && !("ontouchstart" in window)) {
-				prev.add(next).show();
+				if (!GB.options.loop && items.length - 1 > index) next.show();
+
+				if (GB.options.loop) {
+					prev.add(next).show();
+				}
 
 				prev.on('click', showPrev);
 				next.on('click', showNext);
@@ -317,8 +325,8 @@
 
 			if (("ontouchstart" in window)) {
 				gallery.on('touchstart', 'img', function (e) {
-					var touch = e.originalEvent
-						, startX = touch.changedTouches[0].pageX;
+					var touch = e.originalEvent,
+						startX = touch.changedTouches[0].pageX;
 
 					gallery.on('touchmove', function (e) {
 						e.preventDefault();
@@ -327,8 +335,7 @@
 						if (touch.pageX - startX > 10) {
 							gallery.off('touchmove');
 							showPrev();
-						}
-						else if (touch.pageX - startX < -10) {
+						} else if (touch.pageX - startX < -10) {
 							gallery.off('touchmove');
 							showNext();
 						}
@@ -348,16 +355,15 @@
 				});
 			}
 
-			// TODO Зацикливание картинок, нужно подумать как по другому переписать
 			function showPrev() {
 				if (GB.options.loop) {
 					index--;
-					if ( index < 0 ) {
+					if (index < 0) {
 						index = items.length - 1;
 					}
 					loadImage(items.eq(index), index);
 				} else {
-					if ( index > 0 ) {
+					if (index > 0) {
 						index--;
 						loadImage(items.eq(index), index);
 					}
@@ -367,7 +373,7 @@
 			function showNext() {
 				if (GB.options.loop) {
 					index++;
-					if ( index > items.length - 1 ) {
+					if (index > items.length - 1) {
 						index = 0;
 					}
 					loadImage(items.eq(index), index);
@@ -379,11 +385,15 @@
 				}
 
 			}
-
 			function loadImage(el, index) {
 				if (index < 0 || index >= items.length) {
 					return false;
+				} else {
+					prev.add(next).show();
 				}
+
+				if (index <= 0 && !GB.options.loop) prev.hide();
+				if (index+1 >= items.length && !GB.options.loop) next.hide();
 
 				var image = new Image();
 
@@ -482,27 +492,27 @@
 			container.css({
 				top:  (top > 0) ? top : viewport.scrollTop,
 				left: ((viewport.width - container.width() - 20) * 0.5) + viewport.scrollLeft
-			})
+			});
 		}
 	});
 
 	$.fn.genaBox = function (options) {
-		var _self = $(this);
+		var self = $(this);
 
-		_self.off('click.gb-start').on('click.gb-start', function (e) {
+		self.off('click.gb-start').on('click.gb-start', function (e) {
 			if (GB.open($(this), options) !== false) {
 				e.preventDefault();
 			}
 		});
 
-		if (typeof options == 'string' && options == 'show') {
-			var delay = _self.data('gb-delay');
+		if (typeof options === 'string' && options === 'show') {
+			var delay = self.data('gb-delay');
 
 			if (!delay) {
-				_self.trigger('click');
+				self.trigger('click');
 			} else {
 				window.setTimeout(function () {
-					_self.trigger('click');
+					self.trigger('click');
 				}, delay);
 			}
 		}
@@ -510,14 +520,14 @@
 		return this;
 	};
 
-	D.ready(function() {
+	D.ready(function () {
 		D.on('click', '[data-gb-show]', function (e) {
-			e.preventDefault();
+			if (e) e.preventDefault();
 			$.genaBox.open($(this));
 		});
 	});
 
-})(jQuery, window, document);
+}(jQuery, window, document);
 
 /*
  * $.html5data v1.0
